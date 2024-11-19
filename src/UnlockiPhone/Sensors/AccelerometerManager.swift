@@ -19,7 +19,7 @@ class AccelerometerManager: NSObject, ObservableObject {
     // Start Accelerometer Updates
     func startAccelerometers() {
         if self.motion.isAccelerometerAvailable {
-            self.motion.accelerometerUpdateInterval = 1.0 / 1.0  // 1 Hz
+            self.motion.accelerometerUpdateInterval = 1.0 / 50.0  // 50 Hz
 
             // Start accelerometer updates
             self.motion.startAccelerometerUpdates(to: .main) { [weak self] (data, error) in
@@ -35,7 +35,7 @@ class AccelerometerManager: NSObject, ObservableObject {
 
                 // Ensure updates to published properties are handled on the main thread
                 DispatchQueue.main.async {
-                    strongSelf.updateCoordinates(receivedCoordinates: (x: x, y: y, z: z, timestamp: currentTimestamp))
+                    strongSelf.updateCoordinates(receivedCoordinate: (x: x, y: y, z: z, timestamp: currentTimestamp))
                 }
             }
         } else {
@@ -44,11 +44,11 @@ class AccelerometerManager: NSObject, ObservableObject {
     }
 
     // Update iphone Coordinates
-    func updateCoordinates(receivedCoordinates: (x: Double, y: Double, z: Double, timestamp: Date)) {
-        coordinates.append(receivedCoordinates)
+    func updateCoordinates(receivedCoordinate: (x: Double, y: Double, z: Double, timestamp: Date)) {
+        coordinates.append(receivedCoordinate)
         
         // Limit the array size if needed to avoid excessive memory usage
-        if coordinates.count > 50 { // For example, keep only the latest 50 values
+        if coordinates.count > 200 { // For example, keep only the latest 200 samples (0.02 * 200 = 4 seconds)
             coordinates.removeFirst()
         }
     }

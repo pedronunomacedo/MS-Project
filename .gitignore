@@ -1,1 +1,10 @@
 **/*.DS_Store
+*.xcodeproj/xcuserdata/
+*.xcodeproj/*.xcworkspace/xcuserdata/
+
+# Xcode user data
+xcuserdata/
+
+# Debugging files
+*.xcuserstate
+xcdebugger/

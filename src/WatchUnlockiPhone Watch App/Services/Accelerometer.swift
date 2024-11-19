@@ -9,7 +9,7 @@ class Accelerometer: NSObject {
     private var timer: Timer?
     @Published var isAccelerometerAvailable: Bool = true
     
-    public private(set) var coordinates: [String: Any] = ["x": 0.0, "y": 0.0, "z": 0.0, "timestamp": Date()]
+    public private(set) var coordinates: [(x: Double, y: Double, z: Double, timestamp: Date)] = []
     public var strCoordinates: String = ""
 
     override init() {
@@ -20,7 +20,7 @@ class Accelerometer: NSObject {
     func startAccelerometers() {
         // Check if the accelerometer hardware is available.
         if self.motion.isAccelerometerAvailable {
-            self.motion.accelerometerUpdateInterval = 1.0 / 1.0  // 1 Hz
+            self.motion.accelerometerUpdateInterval = 1.0 / 50.0  // 50 Hz
 
             // Start accelerometer updates and handle them with a closure.
             self.motion.startAccelerometerUpdates(to: .main) { [weak self] (data, error) in
@@ -36,7 +36,8 @@ class Accelerometer: NSObject {
                 // Ensure updates to published properties are handled on the main thread
                 DispatchQueue.main.async {
                     strongSelf.updateCoordinates(x: x, y: y, z: z, timestamp: currentTimestamp)
-                    strongSelf.delegate.sendMessage(content: ["coordinates": strongSelf.coordinates])
+                    
+                    strongSelf.delegate.sendMessage(content: ["coordinates": strongSelf.to_dict()])
                 }
             }
         } else {
@@ -46,10 +47,23 @@ class Accelerometer: NSObject {
     }
     
     func updateCoordinates(x: Double, y: Double, z: Double, timestamp: Date) {
-        self.coordinates["x"] = x
-        self.coordinates["y"] = y
-        self.coordinates["z"] = z
-        self.coordinates["timestamp"] = timestamp
+        self.coordinates.append((x, y, z, timestamp))
+        
+        // Limit the history size to save memory (we will only keep the last 200 coordinates) (0.02 * 200 = 4 seconds)
+        if self.coordinates.count > 200 {
+            self.coordinates.removeFirst()
+        }
+    }
+    
+    func to_dict() -> [[String: Double]] {
+        return self.coordinates.map { coordinate in
+            [
+                "x": coordinate.x,
+                "y": coordinate.y,
+                "z": coordinate.z,
+                "timestamp": coordinate.timestamp.timeIntervalSince1970 // Convert Date to timestamp
+            ]
+        }
     }
     
     deinit {

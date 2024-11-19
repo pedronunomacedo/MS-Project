@@ -7,7 +7,7 @@ class ProcessAcceleration {
     func verifyStability(with alignedAccelerations: [(watch: (Double, Double, Double), iPhone: (Double, Double, Double))]) -> Bool {
         print("Verifying accelerations stability!")
         let alignmentThreshold = 0.1  // Define your threshold for angular alignment
-        let consistentSamplesRequired = 5  // 5 seconds of consistent alignment at 1 second intervals
+        let consistentSamplesRequired = 100  // 2 seconds of consistent alignment at 1 second intervals
         
         var consistentAlignmentCount = 0
         
@@ -33,8 +33,8 @@ class ProcessAcceleration {
     }
     
     func process() -> [(watch: (Double, Double, Double), iPhone: (Double, Double, Double))]? {
-        // Ensure both buffers have enough accelerations before processing
-        if WatchAccelerometer.shared.coordinates.count >= 50 && AccelerometerManager.shared.coordinates.count >= 50 {
+        // Ensure both buffers have enough accelerations before processing (each sample corresponda to 0.02 seconds, so 100 samples correspond to 2 seconds)
+        if WatchAccelerometer.shared.coordinates.count >= 100 && AccelerometerManager.shared.coordinates.count >= 100 {
             
             // 1. Apply the Gaussian filter to both sets of accelerations (watch and iPhone)
             let smoothedWatchAccelerations = gaussianFilter(accelerations: WatchAccelerometer.shared.coordinates, sigma: 0.03, period: 0.1)

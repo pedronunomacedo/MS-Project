@@ -6,8 +6,8 @@ class ProcessQuaternions {
     static let shared = ProcessQuaternions()  // Singleton instance
 
     func process() -> [(watch: (Double, Double, Double, Double), iPhone: (Double, Double, Double, Double))]? {
-        // Ensure both buffers have enough quaternions before processing
-        if WatchQuaternion.shared.quaternionHistory.count >= 50 && QuaternionsManager.shared.quaternionHistory.count >= 50 {
+        // Ensure both buffers have enough quaternions before processing (each sample corresponda to 0.02 seconds, so 100 samples correspond to 2 seconds
+        if WatchQuaternion.shared.quaternionHistory.count >= 100 && QuaternionsManager.shared.quaternionHistory.count >= 100 {
             
             // 1. Apply the Gaussian filter to both sets of quaternions (watch and iPhone)
             let smoothedWatchQuaternions = gaussianFilter(quaternions: WatchQuaternion.shared.quaternionHistory, sigma: 0.03, period: 0.1)
@@ -16,12 +16,6 @@ class ProcessQuaternions {
             // 2. Synchronize quaternions based on their timestamps
             let alignedQuaternions = synchronizeQuaternions(smoothedWatchQuaternions, with: smoothediPhoneQuaternions)
 
-//            // 3. Calculate Δq for the aligned quaternions
-//            for i in 0..<alignedQuaternions.count - 1 {
-//                let deltaQWatch = calculateDeltaQ(quaternionAtT: alignedQuaternions[i].watch, quaternionAtTPlusAlpha: alignedQuaternions[i + 1].watch)
-//                let deltaQiPhone = calculateDeltaQ(quaternionAtT: alignedQuaternions[i].iPhone, quaternionAtTPlusAlpha: alignedQuaternions[i + 1].iPhone)
-//            }
-            
             return alignedQuaternions
         }
         
@@ -149,7 +143,7 @@ class ProcessQuaternions {
     func verifyAlignment(with alignedQuaternions: [(watch: (Double, Double, Double, Double), iPhone: (Double, Double, Double, Double))]) -> Bool {
         print("Verifying quaternions alignment!")
         let alignmentThreshold = 0.1  // Define your threshold for angular alignment
-        let consistentSamplesRequired = 5  // 5 seconds of consistent alignment at 0.1-second intervals
+        let consistentSamplesRequired = 100  // 2 seconds of consistent alignment at 0.1-second intervals
         
         var consistentAlignmentCount = 0
         

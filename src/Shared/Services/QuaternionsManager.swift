@@ -19,7 +19,7 @@ class QuaternionsManager: NSObject, ObservableObject {
     // Start Device Motion Updates (which includes quaternion data)
     func startDeviceMotionUpdates() {
         if self.motion.isDeviceMotionAvailable {
-            self.motion.deviceMotionUpdateInterval = 1.0 / 50.0  // 50 Hz
+            self.motion.deviceMotionUpdateInterval = 1.0 / 1.0  // 1 Hz
 
             // Start device motion updates
             self.motion.startDeviceMotionUpdates(to: .main) { [weak self] (motionData, error) in
@@ -50,8 +50,8 @@ class QuaternionsManager: NSObject, ObservableObject {
     func updateQuaternions(w:Double, x: Double, y: Double, z: Double, timestamp: Date) {
         self.quaternionHistory.append((w, x, y, z, timestamp))
         
-        // Limit the history size to save memory (we will only keep the last 200 quaternions)
-        if self.quaternionHistory.count > 200 {
+        // Limit the history size to save memory (we will only keep the last 50 quaternions)
+        if self.quaternionHistory.count > 50 {
             self.quaternionHistory.removeFirst()
         }
     }

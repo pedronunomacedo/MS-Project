@@ -17,10 +17,6 @@ struct ContentView: View {
                     .font(.headline)
                     .bold()
                     .foregroundColor(.blue)
-                Text(extensionDelegate.iPhoneName)
-                Button("Send coordinates") {
-                    extensionDelegate.sendMessage(content: ["coordinates": accelerometer.coordinates])
-                }
             }
             .tabItem {
                 Image(systemName: "person.fill")

@@ -8,12 +8,12 @@ class UnlockManager {
     
     func unlockIfNeeded() {
         print("Unlock if needed!")
-        if !self.phoneUnlocked {
-            if self.shouldUnlock() {
-                self.performUnlock()
-                self.sendUnlockMessageToAppleWatch()
-                self.phoneUnlocked = true
-            }
+        guard !self.phoneUnlocked else { return } // Prevent multiple notifications
+    
+        if self.shouldUnlock() {
+            self.performUnlock()
+            self.sendUnlockMessageToAppleWatch()
+            self.phoneUnlocked = true
         }
     }
     

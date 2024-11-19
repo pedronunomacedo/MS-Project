@@ -20,7 +20,7 @@ class Quaternions: NSObject {
     func startQuaternions() {
         // Check if the accelerometer hardware is available.
         if self.motion.isAccelerometerAvailable {
-            self.motion.deviceMotionUpdateInterval = 1.0 / 1.0  // 1 Hz
+            self.motion.deviceMotionUpdateInterval = 1.0 / 50.0  // 50 Hz
 
             // Start device motion updates
             self.motion.startDeviceMotionUpdates(to: .main) { [weak self] (motionData, error) in
@@ -37,19 +37,11 @@ class Quaternions: NSObject {
                 let z = quaternion.z
                 let currentTimestamp = Date()
                 
-                // print("Watch quaternions: \(w), \(x), \(y), \(z), \(currentTimestamp)")
-
                 // Store the quaternion in the history array
                 DispatchQueue.main.async {
                     strongSelf.updateQuaternions(w: w, x: x, y: y, z: z, timestamp: currentTimestamp)
                     
-                    // Limit the history size to save memory (we will only keep the last 50 quaternions)
-                    if strongSelf.quaternionHistory.count > 50 {
-                        strongSelf.quaternionHistory.removeFirst()
-                    }
-                    let quaternionDict = strongSelf.quaternionHistory.map { ["w": $0.w, "x": $0.x, "y": $0.y, "z": $0.z, "timestamp": $0.timestamp] }
-                    
-                    strongSelf.delegate.sendMessage(content: ["quaternions": quaternionDict]) // Send quartenions history (max of 50 quaternions records)
+                    strongSelf.delegate.sendMessage(content: ["quaternions": strongSelf.to_dict()]) // Send quartenions history (max of 50 quaternions records)
                 }
             }
         } else {
@@ -60,6 +52,23 @@ class Quaternions: NSObject {
     
     func updateQuaternions(w: Double, x: Double, y: Double, z: Double, timestamp: Date) {
         self.quaternionHistory.append((w, x, y, z, timestamp))
+        
+        // Limit the history size to save memory (we will only keep the last 200 quaternions) (0.02 * 200 = 4 seconds)
+        if self.quaternionHistory.count > 200 {
+            self.quaternionHistory.removeFirst()
+        }
+    }
+    
+    func to_dict() -> [[String: Double]] {
+        return self.quaternionHistory.map { quaternion in
+            [
+                "w": quaternion.w,
+                "x": quaternion.x,
+                "y": quaternion.y,
+                "z": quaternion.z,
+                "timestamp": quaternion.timestamp.timeIntervalSince1970 // Convert Date to timestamp
+            ]
+        }
     }
     
     deinit {
