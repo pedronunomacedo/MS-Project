@@ -4,10 +4,10 @@ import CoreMotion
 class ProcessAcceleration {
     static let shared = ProcessAcceleration()  // Singleton instance
     
-    func verifyStability(with alignedAccelerations: [(watch: (Double, Double, Double), iPhone: (Double, Double, Double))]) -> Bool {
+    func verifyStability(with alignedAccelerations: [(watch: Acceleration, iPhone: Acceleration)]) -> Bool {
         print("Verifying accelerations stability!")
         let alignmentThreshold = 0.1  // Define your threshold for angular alignment
-        let consistentSamplesRequired = 100  // 2 seconds of consistent alignment at 1 second intervals
+        let consistentSamplesRequired = 75  // 1.5 seconds of consistent alignment at 1 second intervals
         
         var consistentAlignmentCount = 0
         
@@ -32,22 +32,16 @@ class ProcessAcceleration {
         return false  // Unlock condition not met
     }
     
-    func process() -> [(watch: (Double, Double, Double), iPhone: (Double, Double, Double))]? {
-        // Ensure both buffers have enough accelerations before processing (each sample corresponda to 0.02 seconds, so 100 samples correspond to 2 seconds)
-        if WatchAccelerometer.shared.coordinates.count >= 100 && AccelerometerManager.shared.coordinates.count >= 100 {
+    func process() -> [(watch: Acceleration, iPhone: Acceleration)]? {
+        // Ensure both buffers have enough accelerations before processing (each sample corresponda to 0.02 seconds, so 200 samples correspond to 4 seconds)
+        if WatchAccelerometer.shared.coordinates.count == 200 && AccelerometerManager.shared.coordinates.count == 200 {
             
             // 1. Apply the Gaussian filter to both sets of accelerations (watch and iPhone)
             let smoothedWatchAccelerations = gaussianFilter(accelerations: WatchAccelerometer.shared.coordinates, sigma: 0.03, period: 0.1)
             let smoothediPhoneAccelerations = gaussianFilter(accelerations: AccelerometerManager.shared.coordinates, sigma: 0.03, period: 0.1)
             
             // 2. Synchronize accelerations based on their timestamps
-            let alignedAccelerations = synchronizeAccelerations(smoothedWatchAccelerations, with: smoothediPhoneAccelerations)
-
-//            // 3. Calculate Δq for the aligned accelerations
-//            for i in 0..<alignedAccelerations.count - 1 {
-//                let deltaAWatch = calculateDeltaA(accelerationAtT: alignedAccelerations[i].watch, accelerationAtTPlusAlpha: alignedAccelerations[i + 1].watch)
-//                let deltaAiPhone = calculateDeltaA(accelerationAtT: alignedAccelerations[i].iPhone, accelerationAtTPlusAlpha: alignedAccelerations[i + 1].iPhone)
-//            }
+            let alignedAccelerations = synchronizeAccelerations(watchAccelerations: smoothedWatchAccelerations, with: smoothediPhoneAccelerations)
             
             return alignedAccelerations
         }
@@ -55,7 +49,7 @@ class ProcessAcceleration {
         return nil  // Return nil if not enough data to process
     }
     
-    func areAccelerationsAligned(a1: (x: Double, y: Double, z: Double), a2: (x: Double, y: Double, z: Double), threshold: Double = 0.1) -> Bool {
+    func areAccelerationsAligned(a1: Acceleration, a2: Acceleration, threshold: Double = 0.1) -> Bool {
         // Check if the difference in acceleration components is within the threshold
         let deltaX = abs(a1.x - a2.x)
         let deltaY = abs(a1.y - a2.y)
@@ -64,8 +58,8 @@ class ProcessAcceleration {
         return (deltaX <= threshold && deltaY <= threshold && deltaZ <= threshold)
     }
     
-    func gaussianFilter(accelerations: [(x: Double, y: Double, z: Double, timestamp: Date)], sigma: Double, period: TimeInterval) -> [(x: Double, y: Double, z: Double, timestamp: Date)] {
-        var smoothedAccelerations: [(x: Double, y: Double, z: Double, timestamp: Date)] = []
+    func gaussianFilter(accelerations: [Acceleration], sigma: Double, period: TimeInterval) -> [Acceleration] {
+        var smoothedAccelerations: [Acceleration] = []
         let gaussianWindowSize = Int(period / 0.1)
         
         for i in 0..<accelerations.count {
@@ -83,30 +77,31 @@ class ProcessAcceleration {
             }
             
             let normalizedAcceleration = CMAcceleration(x: weightedAcceleration.x / sumWeights, y: weightedAcceleration.y / sumWeights, z: weightedAcceleration.z / sumWeights)
-            smoothedAccelerations.append((x: normalizedAcceleration.x, y: normalizedAcceleration.y, z: normalizedAcceleration.z, timestamp: accelerations[i].timestamp))
+            smoothedAccelerations.append(Acceleration(x: normalizedAcceleration.x, y: normalizedAcceleration.y, z: normalizedAcceleration.z, timestamp: accelerations[i].timestamp))
         }
         
         return smoothedAccelerations
     }
     
     // Function to calculate the change in orientation (Δq)
-    func calculateDeltaA(accelerationAtT: (x: Double, y: Double, z: Double), accelerationAtTPlusAlpha: (x: Double, y: Double, z: Double)) -> (x: Double, y: Double, z: Double) {
+    func calculateDeltaA(accelerationAtT: Acceleration, accelerationAtTPlusAlpha: Acceleration) -> Acceleration {
         // Subtract the acceleration at time t+alpha by the inverse of the acceleration at time t
-        return (
+        return Acceleration(
             x: accelerationAtTPlusAlpha.x - accelerationAtT.x,
             y: accelerationAtTPlusAlpha.y - accelerationAtT.y,
-            z: accelerationAtTPlusAlpha.z - accelerationAtT.z
+            z: accelerationAtTPlusAlpha.z - accelerationAtT.z,
+            timestamp: accelerationAtT.timestamp
         )
     }
     
-    func synchronizeAccelerations(_ watchAccelerations: [(x: Double, y: Double, z: Double, timestamp: Date)], with iPhoneAccelerations: [(x: Double, y: Double, z: Double, timestamp: Date)]) -> [(watch: (Double, Double, Double), iPhone: (Double, Double, Double))] {
-        var alignedPairs: [(watch: (Double, Double, Double), iPhone: (Double, Double, Double))] = []
+    func synchronizeAccelerations(watchAccelerations: [Acceleration], with iPhoneAccelerations: [Acceleration]) -> [(watch: Acceleration, iPhone: Acceleration)] {
+        var alignedPairs: [(watch: Acceleration, iPhone: Acceleration)] = []
         
         for watchAcceleration in watchAccelerations {
             // Find the closest iPhone acceleration with the nearest timestamp
             if let closestiPhoneAcceleration = iPhoneAccelerations.min(by: { abs($0.timestamp.timeIntervalSince(watchAcceleration.timestamp)) < abs($1.timestamp.timeIntervalSince(watchAcceleration.timestamp)) }) {
                 
-                alignedPairs.append((watch: (watchAcceleration.x, watchAcceleration.y, watchAcceleration.z), iPhone: (closestiPhoneAcceleration.x, closestiPhoneAcceleration.y, closestiPhoneAcceleration.z)))
+                alignedPairs.append((watch: watchAcceleration, iPhone: Acceleration(x: closestiPhoneAcceleration.x, y: closestiPhoneAcceleration.y, z: closestiPhoneAcceleration.z, timestamp: closestiPhoneAcceleration.timestamp)))
             }
         }
         return alignedPairs

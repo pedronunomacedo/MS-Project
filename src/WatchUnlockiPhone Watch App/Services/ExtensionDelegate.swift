@@ -5,6 +5,8 @@ class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate, Obser
     static let shared = ExtensionDelegate()
     @Published var showUnlockNotification: Bool = false
     
+    @Published var iPhoneName: String = "None"
+    
     func applicationDidFinishLaunching() {
         if WCSession.isSupported() {
             let session = WCSession.default
@@ -20,16 +22,30 @@ class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate, Obser
     
     // Handle incoming messages from the iOS app
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
-        if let iphoneUnlockStatus = message["unlockiPhoneStatus"] as? String {
-            if iphoneUnlockStatus == "unlocked" {
-                DispatchQueue.main.async {
-                    self.showUnlockNotification = true
+        print("Received message: \(message)")
+            
+        if let iPhoneName = message["iPhoneName"] as? String {
+            if iPhoneName == ""  {
+                return
+            }
+            
+            self.iPhoneName = iPhoneName
+        } else if let iphoneUnlockStatus = message["unlockiPhoneStatus"] as? String {
+            DispatchQueue.main.async {
+                self.showUnlockNotification = (iphoneUnlockStatus == "unlocked")
+                print("[DEBUG] self.showUnlockNotification: ", self.showUnlockNotification)
+                
+                if self.showUnlockNotification {
+                    print("Showing unlock iPhone notification on Apple Watch!")
                     // Hide the notification after 5 seconds
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                         self.showUnlockNotification = false
+                        print("[DEBUG - After 5 seconds of overlay] self.showUnlockNotification: ", self.showUnlockNotification)
                     }
                 }
             }
+        } else {
+            print("Received message without expected key or incorrect type")
         }
     }
     

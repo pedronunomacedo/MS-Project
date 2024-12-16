@@ -9,7 +9,7 @@ class QuaternionsManager: NSObject, ObservableObject {
     private var session: WCSession?             // Watch Connectivity session
 
     // Store an array of quaternions to capture movement over time
-    public private(set) var quaternionHistory: [(w: Double, x: Double, y: Double, z: Double, timestamp: Date)] = []
+    public private(set) var quaternionHistory: [Quaternion] = []
 
     override init() {
         super.init()
@@ -48,7 +48,8 @@ class QuaternionsManager: NSObject, ObservableObject {
 
     // Add last iPhone quaternion to the quaternions list (quaternions data)
     func updateQuaternions(w:Double, x: Double, y: Double, z: Double, timestamp: Date) {
-        self.quaternionHistory.append((w, x, y, z, timestamp))
+        let quaternion = Quaternion(w: w, x: x, y: y, z: z, timestamp: timestamp)
+        self.quaternionHistory.append(quaternion)
         
         // Limit the history size to save memory (we will only keep the last 200 quaternions)
         if self.quaternionHistory.count > 200 {

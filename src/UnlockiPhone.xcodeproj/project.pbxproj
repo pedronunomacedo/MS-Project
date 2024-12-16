@@ -69,6 +69,8 @@
 		BF053EBB2CBEFE050084E95F /* Views */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Views; sourceTree = "<group>"; };
 		BF16944B2CBFA6B3003B1E2D /* Sensors */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Sensors; sourceTree = "<group>"; };
 		BF639A212CDB6AC000081A7F /* Services */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Services; sourceTree = "<group>"; };
+		BF9F68C72D05E870002DA1A9 /* Models */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Models; sourceTree = "<group>"; };
+		BF9F68CC2D05E9AE002DA1A9 /* Models */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Models; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,6 +113,7 @@
 		BF4BE50F2CB915B50094A129 /* UnlockiPhone */ = {
 			isa = PBXGroup;
 			children = (
+				BF9F68CC2D05E9AE002DA1A9 /* Models */,
 				BF639A212CDB6AC000081A7F /* Services */,
 				BF16944B2CBFA6B3003B1E2D /* Sensors */,
 				BF053EC12CBF17C40084E95F /* Info.plist */,
@@ -143,6 +146,7 @@
 		BFCAED852CB9284E006E1765 /* WatchUnlockiPhone Watch App */ = {
 			isa = PBXGroup;
 			children = (
+				BF9F68C72D05E870002DA1A9 /* Models */,
 				BF4E64E82CCA4B700094049B /* WatchUnlockiPhone Watch App.entitlements */,
 				BF7323402CC14B270048570C /* Info.plist */,
 				BF053EBB2CBEFE050084E95F /* Views */,
@@ -183,6 +187,7 @@
 			fileSystemSynchronizedGroups = (
 				BF16944B2CBFA6B3003B1E2D /* Sensors */,
 				BF639A212CDB6AC000081A7F /* Services */,
+				BF9F68CC2D05E9AE002DA1A9 /* Models */,
 			);
 			name = UnlockiPhone;
 			productName = UnlockiPhone;
@@ -203,6 +208,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				BF053EBB2CBEFE050084E95F /* Views */,
+				BF9F68C72D05E870002DA1A9 /* Models */,
 			);
 			name = "WatchUnlockiPhone Watch App";
 			productName = "WatchUnlockiPhone Watch App";

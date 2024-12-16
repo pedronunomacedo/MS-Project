@@ -62,31 +62,71 @@ class iPhoneSessionManager: NSObject, WCSessionDelegate {
     }
 
     private func handleReceivedMessage(_ message: [String: Any]) {
-        if let coordinates = message["coordinates"] as? [[String: Any]] {
-            guard let lastCoordinate = coordinates.last else { return }
+        if let coordinatesRec = message["coordinates"] as? [[String: Any]] {
+            if coordinatesRec.isEmpty { return }
+            
+            print("Received last coordinate: ", coordinatesRec.last ?? "No last coordinate")
             
             DispatchQueue.global(qos: .utility).async {
-                let x = lastCoordinate["x"] as? Double ?? 0.0
-                let y = lastCoordinate["y"] as? Double ?? 0.0
-                let z = lastCoordinate["z"] as? Double ?? 0.0
-                let timestamp = lastCoordinate["timestamp"] as? Date ?? Date()
+                print("coordinatesRec.count: ", coordinatesRec.count)
+                var coordinates: [Acceleration] = []
+                
+                // Iterate through the received coordinates dictionary
+                for coord in coordinatesRec {
+                    if let x = coord["x"] as? Double,
+                       let y = coord["y"] as? Double,
+                       let z = coord["z"] as? Double,
+                       let timestampValue = coord["timestamp"] as? Double {
+                        print("coord: ", coord)
+                        
+                        // Convert timestamp to Date
+                        let timestamp = Date(timeIntervalSince1970: timestampValue)
+                        
+                        coordinates.append(Acceleration(x: x, y: y, z: z, timestamp: timestamp))
+                    }
+                }
+                
                 DispatchQueue.main.async {
-                    WatchAccelerometer.shared.updateCoordinates(receivedCoordinate: (x: x, y: y, z: z, timestamp: timestamp))
-                    UnlockManager.shared.unlockIfNeeded()
+                    print("coordinates sending to be updated count: ", coordinates.count)
+                    WatchAccelerometer.shared.updateCoordinates(coordinatesRec: coordinates)
+                    
+                    // Trigger analysis when 200 coordinates are received
+                    if (WatchAccelerometer.shared.coordinates.count == 200) {
+                        UnlockManager.shared.unlockIfNeeded()
+                    }
                 }
             }
-        } else if let quaternions = message["quaternions"] as? [[String: Double]] {
-            guard let lastQuaternion = quaternions.last else { return }
+        } else if let quaternionsRec = message["quaternions"] as? [[String: Any]] {
+            if quaternionsRec.isEmpty { return }
+            
+            print("Received last quaternion: ", quaternionsRec.last ?? "No last coordinate")
+            
             DispatchQueue.global(qos: .utility).async {
-                let w = lastQuaternion["w"] ?? 0.0
-                let x = lastQuaternion["x"] ?? 0.0
-                let y = lastQuaternion["y"] ?? 0.0
-                let z = lastQuaternion["z"] ?? 0.0
-                let timestamp = Date()
-                DispatchQueue.main.async {
-                    WatchQuaternion.shared.updateQuaternions(quaternion: (w: w, x: x, y: y, z: z, timestamp: timestamp))
-                    UnlockManager.shared.unlockIfNeeded()
+                var quaternions: [Quaternion] = []
+                                
+                for quat in quaternionsRec {
+                    if let w = quat["w"] as? Double,
+                       let x = quat["x"] as? Double,
+                       let y = quat["y"] as? Double,
+                       let z = quat["z"] as? Double,
+                       let timestampValue = quat["timestamp"] as? Double {
+                        print("quat: ", quat)
+                        
+                        // Convert timestamp to Date
+                        let timestamp = Date(timeIntervalSince1970: timestampValue)
+                        
+                        quaternions.append(Quaternion(w:w, x: x, y: y, z: z, timestamp: timestamp))
+                    }
                 }
+                
+                DispatchQueue.main.async {
+                    WatchQuaternion.shared.updateQuaternions(quaternions: quaternions)
+                    if (WatchQuaternion.shared.quaternionHistory.count == 200) { // When there's a window to be analysed
+                        UnlockManager.shared.unlockIfNeeded()
+                    }
+                }
+                
+                print("----------------------------------------------------------------------------------------------------")
             }
         }
     }

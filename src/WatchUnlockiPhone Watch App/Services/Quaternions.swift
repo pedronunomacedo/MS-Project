@@ -9,7 +9,7 @@ class Quaternions: NSObject {
     private var timer: Timer?
     @Published var isAccelerometerAvailable: Bool = true
     
-    public private(set) var quaternionHistory: [(w: Double, x: Double, y: Double, z: Double, timestamp: Date)] = [] // Current Apple watch coordinates
+    public private(set) var quaternionHistory: [Quaternion] = [] // Current Apple watch coordinates
     public var strCoordinates: String = ""
 
     override init() {
@@ -41,7 +41,9 @@ class Quaternions: NSObject {
                 DispatchQueue.main.async {
                     strongSelf.updateQuaternions(w: w, x: x, y: y, z: z, timestamp: currentTimestamp)
                     
-                    strongSelf.delegate.sendMessage(content: ["quaternions": strongSelf.to_dict()]) // Send quartenions history (max of 50 quaternions records)
+                    if (strongSelf.quaternionHistory.count == 200) { // Keep only the latest 200 samples
+                        strongSelf.delegate.sendMessage(content: ["quaternions": strongSelf.to_dict()])
+                    }
                 }
             }
         } else {
@@ -51,11 +53,12 @@ class Quaternions: NSObject {
     }
     
     func updateQuaternions(w: Double, x: Double, y: Double, z: Double, timestamp: Date) {
-        self.quaternionHistory.append((w, x, y, z, timestamp))
+        let quaternion =  Quaternion(w: w, x: x, y: y, z: z, timestamp: timestamp)
+        self.quaternionHistory.append(quaternion)
         
         // Limit the history size to save memory (we will only keep the last 200 quaternions) (0.02 * 200 = 4 seconds)
-        if self.quaternionHistory.count > 200 {
-            self.quaternionHistory.removeFirst()
+        if self.quaternionHistory.count > 200 { // Keep only the latest 200 samples
+            self.quaternionHistory.removeFirst(self.quaternionHistory.count - 200) // Remove the first 100 elements (the last 100 samples will be kept because it's the next sliding window)
         }
     }
     

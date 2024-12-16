@@ -1,20 +1,28 @@
 import SwiftUI
+import WatchKit
 
 struct UnlockNotificationView: View {
     var body: some View {
         VStack {
-            Image(systemName: "lock.open.fill")
+            Image(systemName: "checkmark.circle.fill")
                 .resizable()
+                .scaledToFit()
                 .frame(width: 50, height: 50)
                 .foregroundColor(.green)
-            Text("iPhone Unlocked")
-                .font(.headline)
+            Text("iPhone unlocked")
+                .fontWeight(.bold)
                 .foregroundColor(.white)
+                .padding(.top, 5)
         }
-        .padding()
         .background(Color.black.opacity(0.8))
-        .cornerRadius(10)
-        .shadow(radius: 5)
+        .shadow(radius: 10)
+        .onAppear {
+            // Trigger a haptic feedback notification
+            WKInterfaceDevice.current().play(.notification)
+            print("UnlockNotificationView appeared!")
+        }
+        .onDisappear {
+            print("UnlockNotificationView disappeared!")
+        }
     }
 }
-

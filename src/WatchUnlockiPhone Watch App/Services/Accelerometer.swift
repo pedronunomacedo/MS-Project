@@ -9,7 +9,7 @@ class Accelerometer: NSObject {
     private var timer: Timer?
     @Published var isAccelerometerAvailable: Bool = true
     
-    public private(set) var coordinates: [(x: Double, y: Double, z: Double, timestamp: Date)] = []
+    public private(set) var coordinates: [Acceleration] = []
     public var strCoordinates: String = ""
 
     override init() {
@@ -37,7 +37,9 @@ class Accelerometer: NSObject {
                 DispatchQueue.main.async {
                     strongSelf.updateCoordinates(x: x, y: y, z: z, timestamp: currentTimestamp)
                     
-                    strongSelf.delegate.sendMessage(content: ["coordinates": strongSelf.to_dict()])
+                    if (strongSelf.coordinates.count == 200) { // Only send windows of 200 samples (so, 4 seconds windows of 0.02 seconds samples)
+                        strongSelf.delegate.sendMessage(content: ["coordinates": strongSelf.to_dict()])
+                    }
                 }
             }
         } else {
@@ -47,11 +49,12 @@ class Accelerometer: NSObject {
     }
     
     func updateCoordinates(x: Double, y: Double, z: Double, timestamp: Date) {
-        self.coordinates.append((x, y, z, timestamp))
+        let acceleration = Acceleration(x: x, y: y, z: z, timestamp: timestamp)
+        self.coordinates.append(acceleration)
         
         // Limit the history size to save memory (we will only keep the last 200 coordinates) (0.02 * 200 = 4 seconds)
-        if self.coordinates.count > 200 {
-            self.coordinates.removeFirst()
+        if self.coordinates.count > 200 { // Keep only the latest 200 samples
+            self.coordinates.removeFirst(self.coordinates.count - 200) // Remove the first 100 elements (the last 100 samples will be kept because it's the next sliding window)
         }
     }
     

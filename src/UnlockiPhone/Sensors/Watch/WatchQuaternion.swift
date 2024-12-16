@@ -3,14 +3,22 @@ import WatchConnectivity
 
 class WatchQuaternion: ObservableObject {
     static let shared = WatchQuaternion()
-    @Published var quaternionHistory: [(w: Double, x: Double, y: Double, z: Double, timestamp: Date)] = [] // Current Apple watch coordinates
+    @Published var quaternionHistory: [Quaternion] = [] // Current Apple watch coordinates
+    private let quaternionsQueue = DispatchQueue(label: "com.example.watchQuaternions")
     
-    func updateQuaternions(quaternion: (w: Double, x: Double, y: Double, z: Double, timestamp: Date)) {
-        self.quaternionHistory.append(quaternion)
-        
-        // Limit the history size to save memory (we will only keep the last 200 quaternions)
-        if self.quaternionHistory.count > 200 {
-            self.quaternionHistory.removeFirst()
+    func updateQuaternions(quaternions: [Quaternion]) {
+        quaternionsQueue.async { // Ensure all updates are serialized
+            let newQuaternions = quaternions
+            var updatedQuaternions = self.quaternionHistory
+            updatedQuaternions.append(contentsOf: newQuaternions) // newQuaternions/window will have 100 samples (and updatedQuaternions will have 200 + 100 = 300 samples)
+            
+            if updatedQuaternions.count > 200 { // Keep only the latest 200 samples
+                updatedQuaternions.removeFirst(updatedQuaternions.count - 200) // Remove the first 100 elements (the last 100 samples will be kept because it's the next sliding window)
+            }
+            
+            DispatchQueue.main.async { // Switch to main thread to update @Published property
+                self.quaternionHistory = updatedQuaternions
+            }
         }
     }
 }

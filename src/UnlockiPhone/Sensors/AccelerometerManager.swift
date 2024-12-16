@@ -9,7 +9,7 @@ class AccelerometerManager: NSObject, ObservableObject {
     private var session: WCSession?             // Watch Connectivity session
 
     // public private(set) var coordinates: [String: Any] = ["x": 0.0, "y": 0.0, "z": 0.0, "timestamp": Date()] // Current iPhone coordinates
-    @Published var coordinates: [(x: Double, y: Double, z: Double, timestamp: Date)] = [] // Current Apple watch coordinates
+    @Published var coordinates: [Acceleration] = [] // Current Apple watch coordinates
 
     override init() {
         super.init()
@@ -35,7 +35,7 @@ class AccelerometerManager: NSObject, ObservableObject {
 
                 // Ensure updates to published properties are handled on the main thread
                 DispatchQueue.main.async {
-                    strongSelf.updateCoordinates(receivedCoordinate: (x: x, y: y, z: z, timestamp: currentTimestamp))
+                    strongSelf.updateCoordinates(x: x, y: y, z: z, timestamp: currentTimestamp)
                 }
             }
         } else {
@@ -44,8 +44,9 @@ class AccelerometerManager: NSObject, ObservableObject {
     }
 
     // Update iphone Coordinates
-    func updateCoordinates(receivedCoordinate: (x: Double, y: Double, z: Double, timestamp: Date)) {
-        coordinates.append(receivedCoordinate)
+    func updateCoordinates(x: Double, y: Double, z: Double, timestamp: Date) {
+        let acceleration = Acceleration(x: x, y: y, z: z, timestamp: timestamp)
+        coordinates.append(acceleration)
         
         // Limit the array size if needed to avoid excessive memory usage
         if coordinates.count > 200 { // For example, keep only the latest 200 samples (0.02 * 200 = 4 seconds)

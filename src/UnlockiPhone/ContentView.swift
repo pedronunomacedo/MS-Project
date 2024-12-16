@@ -6,10 +6,16 @@ struct ContentView: View {
     @ObservedObject var watchQuaternions = WatchQuaternion.shared
     @ObservedObject var iPhoneaccelerometer = AccelerometerManager.shared
     @ObservedObject var iPhoneQuaternions = QuaternionsManager.shared
+    var unlockManager = UnlockManager.shared
 
     var body: some View {
         VStack {
+            Text("Phone unlocks: \(unlockManager.phoneUnlocks)")
+        }
+        .padding(10)
+        VStack {
             Text("Watch accelerometer:")
+            Text("Coordinates counter: \(watchAccelerometer.coordinates.count)")
             Text("X: \(watchAccelerometer.coordinates.last?.x ?? 0.0, specifier: "%.2f")")
             Text("Y: \(watchAccelerometer.coordinates.last?.y ?? 0.0, specifier: "%.2f")")
             Text("Z: \(watchAccelerometer.coordinates.last?.z ?? 0.0, specifier: "%.2f")")
@@ -18,6 +24,7 @@ struct ContentView: View {
         .padding(10)
         VStack {
             Text("Watch last quaternion:")
+            Text("Quaternions counter: \(watchQuaternions.quaternionHistory.count)")
             Text("W: \(watchQuaternions.quaternionHistory.last?.w ?? 0.0)")
             Text("X: \(watchQuaternions.quaternionHistory.last?.x ?? 0.0)")
             Text("Y: \(watchQuaternions.quaternionHistory.last?.y ?? 0.0)")

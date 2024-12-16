@@ -64,8 +64,6 @@ struct ContentView: View {
                 Text("Page 3")
             }
         }
-        .tabViewStyle(.carousel)
-        .padding(.horizontal, 10)
         .background(
             LinearGradient(
                 gradient: Gradient(colors: [
@@ -90,18 +88,20 @@ struct ContentView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
-        .overlay(
-            Group {
-                if extensionDelegate.showUnlockNotification {
-                    UnlockNotificationView()
-                        .transition(.opacity)
-                        .onAppear {
-                            withAnimation(.easeInOut(duration: 0.5)) {
-                                // Trigger the animation with withAnimation
-                            }
-                        }
-                }
-            }
-        )
+//        .overlay(
+//            Group {
+//                if extensionDelegate.showUnlockNotification {
+//                    UnlockNotificationView()
+//                        .transition(.opacity)
+//                        .onAppear {
+//                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+//                                extensionDelegate.showUnlockNotification = false
+//                            }
+//                        }
+//                }
+//            }
+//        )
+        .tabViewStyle(.carousel)
+        .padding(.horizontal, 10)
     }
 }

@@ -4,16 +4,28 @@ import UserNotifications
 
 class UnlockManager {
     static let shared = UnlockManager()  // Singleton instance
-    var phoneUnlocked = false;
+    var phoneUnlocked = false
+    @Published var phoneUnlocks: Int = 0
+    
+    private var lastUnlockAttempt: Date? = nil
+    private let minimumInterval: TimeInterval = 1  // Minimum time interval between unlock attempts in seconds
     
     func unlockIfNeeded() {
         print("Unlock if needed!")
         guard !self.phoneUnlocked else { return } // Prevent multiple notifications
-    
+        
+//        let currentTime = Date()
+//        if let lastUnlockAttempt = self.lastUnlockAttempt,
+//           currentTime.timeIntervalSince(lastUnlockAttempt) < minimumInterval {
+//            print("Unlock attempt throttled.")
+//            return
+//        }
+//        
+//        self.lastUnlockAttempt = currentTime
+        
         if self.shouldUnlock() {
             self.performUnlock()
-            self.sendUnlockMessageToAppleWatch()
-            self.phoneUnlocked = true
+            // self.phoneUnlocked = true // TODO: Uncomment when project is done!
         }
     }
     
@@ -31,6 +43,12 @@ class UnlockManager {
         }
         
         print("alignedAccelerations.count: ", alignedAccelerations.count)
+        
+        // Cehck if at least one device is stationary (acceleratin near 0)
+//        if self.checkIfDevicesAreStationary(alignedAccelerations: alignedAccelerations) {
+//            print("Devices are stationary. No unlock necessary.")
+//            return false
+//        }
 
         // Step 2: Check if both alignment and stability conditions are met
         let quaternionsAligned = ProcessQuaternions.shared.verifyAlignment(with: alignedQuaternions)
@@ -43,7 +61,30 @@ class UnlockManager {
         return quaternionsAligned && accelerationStable
     }
     
+    private func checkIfDevicesAreStationary(alignedAccelerations: [(watch: Acceleration, iPhone: Acceleration)]) -> Bool {
+        // Define a small epsilon value to consider as zero acceleration
+        let epsilon = 0.05  // Threshold for considering values as zero
+
+        let isStationary = alignedAccelerations.allSatisfy { pair in
+            // Check both watch and iPhone accelerations
+            let watchAcceleration = pair.watch
+            let iphoneAcceleration = pair.iPhone
+            return (abs(watchAcceleration.x) <= epsilon && abs(watchAcceleration.y) <= epsilon && abs(watchAcceleration.z) <= 1.0 + epsilon) || 
+            (abs(iphoneAcceleration.x) <= epsilon && abs(iphoneAcceleration.y) <= epsilon && abs(iphoneAcceleration.z) <= 1.0 + epsilon)
+        }
+
+        return isStationary
+    }
+    
+    private func incrementPhoneUnlocks() {
+        DispatchQueue.main.async {
+            self.phoneUnlocks += 1
+        }
+    }   
+    
     private func performUnlock() {
+        if self.phoneUnlocked { return } // Guard to prevent multiple unlocks
+        
         // Notify the user with a local notification
         let content = UNMutableNotificationContent()
         content.title = "Unlock Conditions Met"
@@ -56,18 +97,13 @@ class UnlockManager {
             
         print("Triggering notification on iPhone!")
         
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            if let error = error {
-                print("Error requesting notification authorization: \(error.localizedDescription)")
-                return
-            } else {
-                print("Notification permission granted: \(granted)")
-            }
-        }
-                
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
                 print("Error displaying notification: \(error.localizedDescription)")
+            } else {
+                print("Notification added successfully!")
+                self.incrementPhoneUnlocks()
+                // self.sendUnlockMessageToAppleWatch()
             }
         }
     }
@@ -75,7 +111,9 @@ class UnlockManager {
     private func sendUnlockMessageToAppleWatch() {
         print("Sending unlock iPhone confirmation to the watch!")
         
-        let message = ["unlockiPhoneStatus": "unlocked"]
+        let message : [String: String] = [
+            "unlockiPhoneStatus": "unlocked"
+        ]
         
         WCSession.default.sendMessage(message, replyHandler: nil) { error in
             print("Failed to send message to Apple Watch: \(error.localizedDescription)")
