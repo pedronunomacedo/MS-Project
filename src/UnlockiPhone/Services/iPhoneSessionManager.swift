@@ -1,12 +1,16 @@
 import WatchConnectivity
-import UIKit
+import Foundation
 
-class iPhoneSessionManager: NSObject, WCSessionDelegate {
-
+class iPhoneSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     static let shared = iPhoneSessionManager()
-    private var sessionIsActive = false
 
-    private override init() {
+    private let motionService = MotionDataService.shared
+    private let motionProcessor = MotionDataProcessor.shared
+
+    @Published private(set) var receivedAccelerations: [Acceleration] = []
+    @Published private(set) var receivedQuaternions: [Quaternion] = []
+
+    override private init() {
         super.init()
         if WCSession.isSupported() {
             let session = WCSession.default
@@ -15,132 +19,149 @@ class iPhoneSessionManager: NSObject, WCSessionDelegate {
         }
     }
 
-    // MARK: - WCSessionDelegate Methods
+    // MARK: - WCSessionDelegate
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         if let error = error {
-            print("WCSession activation failed with error: \(error.localizedDescription)")
+            print("WCSession activation failed: \(error.localizedDescription)")
+            motionService.stopUpdates()
         } else {
-            print("WCSession activated successfully with state: \(activationState.rawValue)")
-            self.sessionIsActive = (activationState == .activated)
+            print("WCSession activated with state: \(activationState.rawValue)")
+            self.updateContextFromiPhone(value: true)
         }
         
-        if activationState == .activated {
-            self.sendiPhoneName() // Send iPhone name on activation
+        self.checkMotionDataState()
+    }
+
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        print("Checking session reachability!")
+        if session.isReachable {
+            print("WCSession is reachable.")
+        } else {
+            print("WCSession is not reachable.")
         }
     }
 
     func sessionDidBecomeInactive(_ session: WCSession) {
-        self.sessionIsActive = false
         print("WCSession became inactive.")
     }
 
     func sessionDidDeactivate(_ session: WCSession) {
-        self.sessionIsActive = false
-        print("WCSession deactivated. Reactivated session.")
+        print("WCSession deactivated. Reactivating...")
         WCSession.default.activate()
     }
 
-    func sessionReachabilityDidChange(_ session: WCSession) {
-        if session.isReachable {
-            print("WCSession is now reachable.")
-        } else {
-            print("WCSession is no longer reachable.")
-        }
-    }
-
-    // Handle incoming messages from the Apple Watch
-    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        print("Watch received context: \(applicationContext)")
         DispatchQueue.main.async {
-            self.handleReceivedMessage(message)
+            if let iOSActive = applicationContext["iOSActive"] as? Bool {
+                print("Watch updated iOSActive: \(iOSActive)")
+            }
+            if let watchActive = applicationContext["watchActive"] as? Bool {
+                print("Watch updated watchActive: \(watchActive)")
+            }
+            self.checkMotionDataState()
         }
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        DispatchQueue.main.async {
-            self.handleReceivedMessage(message)
-        }
+        handleReceivedMessage(message)
+    }
+    
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        handleReceivedMessage(message)
     }
 
+    // MARK: - Handle Received Messages
     private func handleReceivedMessage(_ message: [String: Any]) {
-        if let coordinatesRec = message["coordinates"] as? [[String: Any]] {
-            if coordinatesRec.isEmpty { return }
-            
-            print("Received last coordinate: ", coordinatesRec.last ?? "No last coordinate")
-            
-            DispatchQueue.global(qos: .utility).async {
-                print("coordinatesRec.count: ", coordinatesRec.count)
-                var coordinates: [Acceleration] = []
-                
-                // Iterate through the received coordinates dictionary
-                for coord in coordinatesRec {
-                    if let x = coord["x"] as? Double,
-                       let y = coord["y"] as? Double,
-                       let z = coord["z"] as? Double,
-                       let timestampValue = coord["timestamp"] as? Double {
-                        print("coord: ", coord)
-                        
-                        // Convert timestamp to Date
-                        let timestamp = Date(timeIntervalSince1970: timestampValue)
-                        
-                        coordinates.append(Acceleration(x: x, y: y, z: z, timestamp: timestamp))
-                    }
-                }
-                
-                DispatchQueue.main.async {
-                    print("coordinates sending to be updated count: ", coordinates.count)
-                    WatchAccelerometer.shared.updateCoordinates(coordinatesRec: coordinates)
-                    
-                    // Trigger analysis when 200 coordinates are received
-                    if (WatchAccelerometer.shared.coordinates.count == 200) {
-                        UnlockManager.shared.unlockIfNeeded()
-                    }
-                }
-            }
-        } else if let quaternionsRec = message["quaternions"] as? [[String: Any]] {
-            if quaternionsRec.isEmpty { return }
-            
-            print("Received last quaternion: ", quaternionsRec.last ?? "No last coordinate")
-            
-            DispatchQueue.global(qos: .utility).async {
-                var quaternions: [Quaternion] = []
-                                
-                for quat in quaternionsRec {
-                    if let w = quat["w"] as? Double,
-                       let x = quat["x"] as? Double,
-                       let y = quat["y"] as? Double,
-                       let z = quat["z"] as? Double,
-                       let timestampValue = quat["timestamp"] as? Double {
-                        print("quat: ", quat)
-                        
-                        // Convert timestamp to Date
-                        let timestamp = Date(timeIntervalSince1970: timestampValue)
-                        
-                        quaternions.append(Quaternion(w:w, x: x, y: y, z: z, timestamp: timestamp))
-                    }
-                }
-                
-                DispatchQueue.main.async {
-                    WatchQuaternion.shared.updateQuaternions(quaternions: quaternions)
-                    if (WatchQuaternion.shared.quaternionHistory.count == 200) { // When there's a window to be analysed
-                        UnlockManager.shared.unlockIfNeeded()
-                    }
-                }
-                
-                print("----------------------------------------------------------------------------------------------------")
+        if let accelerationData = message["accelerations"] as? [[String: Any]] {
+            receivedAccelerations = accelerationData.compactMap {
+                guard
+                    let x = $0["x"] as? Double,
+                    let y = $0["y"] as? Double,
+                    let z = $0["z"] as? Double,
+                    let timestamp = $0["timestamp"] as? TimeInterval
+                else { return nil }
+                return Acceleration(x: x, y: y, z: z, timestamp: timestamp)
             }
         }
+
+        if let quaternionData = message["quaternions"] as? [[String: Any]] {
+            receivedQuaternions = quaternionData.compactMap {
+                guard
+                    let w = $0["w"] as? Double,
+                    let x = $0["x"] as? Double,
+                    let y = $0["y"] as? Double,
+                    let z = $0["z"] as? Double,
+                    let timestamp = $0["timestamp"] as? TimeInterval
+                else { return nil }
+                return Quaternion(w: w, x: x, y: y, z: z, timestamp: timestamp)
+            }
+        }
+
+        motionProcessor.addData(source: "watch", accelerations: receivedAccelerations, quaternions: receivedQuaternions)
+    }
+    
+    // MARK: - Lifecycle Handlers
+    func handleAppActivation() {
+        print("iOS App became active.")
+        self.updateContextFromiPhone(value: true)
+        self.checkMotionDataState()
     }
 
-    // Send current iPhone name to the Apple Watch
-    func sendiPhoneName() {
-        guard WCSession.default.isReachable else {
-            print("Apple Watch is not reachable.")
-            return
+    func handleAppDeactivation() {
+        // Application running in the background
+        print("2) iOS App will resign active.")
+        
+        do {
+            try WCSession.default.updateApplicationContext(["active": true])
+            print("2) Successfully updated context: active = true")
+        } catch {
+            print("2) Failed to update context: \(error.localizedDescription)")
         }
 
-        let iPhoneName = UIDevice.current.name
-        WCSession.default.sendMessage(["iPhoneName": iPhoneName], replyHandler: nil) { error in
-            print("Error sending iPhone name: \(error.localizedDescription)")
+        checkMotionDataState()
+    }
+
+    func handleAppTermination() {
+        print("App is terminating.")
+        motionService.stopUpdates()
+    }
+    
+    func handleBackgroundTask() {
+        motionService.setupMotionUpdates()
+    }
+    
+    func updateContextFromiPhone(value: Bool) {
+        let watchActive = (WCSession.default.receivedApplicationContext["watchActive"] as? Bool) ?? false
+        
+        print("WCSession.default.receivedApplicationContext[\"watchActive\"]: ", WCSession.default.receivedApplicationContext["watchActive"] ?? "Unknown watchActive attribute")
+        
+        let context: [String: Any] = [
+            "iOSActive": value, // Last known value from the iOS app
+            "watchActive": watchActive,
+        ]
+        
+        do {
+            try WCSession.default.updateApplicationContext(context)
+            print("iPhone updated context: \(context)")
+        } catch {
+            print("Failed to update Watch context: \(error.localizedDescription)")
+        }
+    }
+    
+    private func checkMotionDataState() {
+        let iOSActive = WCSession.default.applicationContext["iOSActive"] as? Bool ?? false
+        let watchActive = WCSession.default.receivedApplicationContext["watchActive"] as? Bool ?? false
+        
+        // Log the current state
+        print("Checking motion data state. iOSActive : \(iOSActive), watchActive: \(watchActive)")
+
+        if iOSActive && watchActive {
+            print("Both iOS and Watch apps are active. Starting motion updates.")
+            motionService.setupMotionUpdates()
+        } else {
+            print("Either iOS or Watch app is not active. Stopping motion updates.")
+            motionService.stopUpdates()
         }
     }
 }

@@ -6,7 +6,7 @@ struct WatchUnlockiPhoneApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(motionService: MotionDataService())
         }
     }
 }

@@ -19,10 +19,7 @@ struct UnlockNotificationView: View {
         .onAppear {
             // Trigger a haptic feedback notification
             WKInterfaceDevice.current().play(.notification)
-            print("UnlockNotificationView appeared!")
         }
-        .onDisappear {
-            print("UnlockNotificationView disappeared!")
-        }
+        .ignoresSafeArea()
     }
 }

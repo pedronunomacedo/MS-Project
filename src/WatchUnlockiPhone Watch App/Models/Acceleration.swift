@@ -4,10 +4,10 @@ struct Acceleration {
     var x: Double
     var y: Double
     var z: Double
-    var timestamp: Date  // Timestamp for each acceleration instance
+    var timestamp: TimeInterval  // Timestamp for each acceleration instance
 
     // Initialize with components and optional timestamp
-    init(x: Double, y: Double, z: Double, timestamp: Date = Date()) {
+    init(x: Double, y: Double, z: Double, timestamp: TimeInterval = Date().timeIntervalSince1970) {
         self.x = x
         self.y = y
         self.z = z

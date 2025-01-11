@@ -5,10 +5,10 @@ struct Quaternion {
     var x: Double
     var y: Double
     var z: Double
-    var timestamp: Date  // Timestamp for each quaternion instance
+    var timestamp: TimeInterval  // Timestamp for each quaternion instance
 
     // Initialize with components and optional timestamp
-    init(w: Double, x: Double, y: Double, z: Double, timestamp: Date = Date()) {
+    init(w: Double, x: Double, y: Double, z: Double, timestamp: TimeInterval = Date().timeIntervalSince1970) {
         self.w = w
         self.x = x
         self.y = y
@@ -38,6 +38,6 @@ struct Quaternion {
         let x = left.w * right.x + left.x * right.w + left.y * right.z - left.z * right.y
         let y = left.w * right.y - left.x * right.z + left.y * right.w + left.z * right.x
         let z = left.w * right.z + left.x * right.y - left.y * right.x + left.z * right.w
-        return Quaternion(w: w, x: x, y: y, z: z, timestamp: left.timestamp)  // Use timestamp from 'left' quaternion
+        return Quaternion(w: w, x: x, y: y, z: z, timestamp: left.timestamp) // Use timestamp from 'left' quaternion
     }
 }

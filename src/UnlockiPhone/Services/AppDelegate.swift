@@ -1,5 +1,4 @@
 import UIKit
-import WatchConnectivity
 import BackgroundTasks
 
 class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
@@ -10,11 +9,29 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         setupNotificationCenter()
         setupBackgroundTasks()
 
-        // Ensure the session manager is initialized
+        // Ensure iPhoneSessionManager is initialized
         _ = iPhoneSessionManager.shared
-
-        scheduleBackgroundTask()
         return true
+    }
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        print("App became active.")
+        iPhoneSessionManager.shared.handleAppActivation()
+    }
+
+    func applicationWillResignActive(_ application: UIApplication) {
+        print("App will resign active.")
+        iPhoneSessionManager.shared.handleAppDeactivation()
+    }
+
+    func applicationDidEnterBackground(_ application: UIApplication) {
+        print("App entered background.")
+        scheduleBackgroundTask()
+    }
+
+    func applicationWillTerminate(_ application: UIApplication) {
+        print("App is terminating.")
+        iPhoneSessionManager.shared.handleAppTermination()
     }
 
     // MARK: - Notifications
@@ -22,7 +39,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         UNUserNotificationCenter.current().delegate = self
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if let error = error {
-                print("Error requesting notification authorization: \(error.localizedDescription)")
+                print("Notification authorization failed: \(error.localizedDescription)")
             } else {
                 print("Notification permission granted: \(granted)")
             }
@@ -30,7 +47,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        // Display the notification as a banner, sound, or badge while in the foreground
         completionHandler([.banner, .sound, .badge])
     }
 
@@ -41,23 +57,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
 
     // MARK: - Background Tasks
     private func setupBackgroundTasks() {
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: backgroundTaskID, using: nil) { [weak self] task in
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: backgroundTaskID, using: nil) { task in
             guard let task = task as? BGAppRefreshTask else { return }
-            self?.handleBackgroundTask(task: task)
+            self.handleBackgroundTask(task: task)
         }
     }
 
     private func scheduleBackgroundTask() {
         do {
             let taskRequest = BGAppRefreshTaskRequest(identifier: backgroundTaskID)
+            taskRequest.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
             try BGTaskScheduler.shared.submit(taskRequest)
+            print("Scheduled background task.")
         } catch {
             print("Failed to schedule background task: \(error.localizedDescription)")
         }
     }
 
     private func handleBackgroundTask(task: BGAppRefreshTask) {
-        // Add your background task processing logic here
+        print("Handling background task.")
+        iPhoneSessionManager.shared.handleBackgroundTask()
         task.setTaskCompleted(success: true)
-    }    
+        scheduleBackgroundTask()
+    }
 }

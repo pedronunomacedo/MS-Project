@@ -11,9 +11,8 @@
 		BF4BE5132CB915B50094A129 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4BE5122CB915B50094A129 /* ContentView.swift */; };
 		BF4BE5152CB915B60094A129 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF4BE5142CB915B60094A129 /* Assets.xcassets */; };
 		BF4BE5182CB915B60094A129 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF4BE5172CB915B60094A129 /* Preview Assets.xcassets */; };
-		BF7E2C9F2CCBA3D40065331E /* Quaternions.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7E2C9E2CCBA3D20065331E /* Quaternions.swift */; };
 		BF8164012CB930C300F85DA3 /* ExtensionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8164002CB930C300F85DA3 /* ExtensionDelegate.swift */; };
-		BF8164062CB94F4600F85DA3 /* Accelerometer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8164052CB94F4400F85DA3 /* Accelerometer.swift */; };
+		BFB0DF082D19E168003FE3C9 /* MotionDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFB0DF072D19E164003FE3C9 /* MotionDataService.swift */; };
 		BFCAED872CB9284E006E1765 /* WatchUnlockiPhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFCAED862CB9284E006E1765 /* WatchUnlockiPhoneApp.swift */; };
 		BFCAED892CB9284E006E1765 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFCAED882CB9284E006E1765 /* ContentView.swift */; };
 		BFCAED8B2CB92850006E1765 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFCAED8A2CB92850006E1765 /* Assets.xcassets */; };
@@ -46,7 +45,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		BF053EBA2CBEF9680084E95F /* data.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = data.json; sourceTree = "<group>"; };
 		BF053EC12CBF17C40084E95F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BF4BE50D2CB915B50094A129 /* UnlockiPhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UnlockiPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BF4BE5102CB915B50094A129 /* UnlockiPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockiPhoneApp.swift; sourceTree = "<group>"; };
@@ -55,9 +53,8 @@
 		BF4BE5172CB915B60094A129 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		BF4E64E82CCA4B700094049B /* WatchUnlockiPhone Watch App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "WatchUnlockiPhone Watch App.entitlements"; sourceTree = "<group>"; };
 		BF7323402CC14B270048570C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		BF7E2C9E2CCBA3D20065331E /* Quaternions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Quaternions.swift; sourceTree = "<group>"; };
 		BF8164002CB930C300F85DA3 /* ExtensionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionDelegate.swift; sourceTree = "<group>"; };
-		BF8164052CB94F4400F85DA3 /* Accelerometer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Accelerometer.swift; sourceTree = "<group>"; };
+		BFB0DF072D19E164003FE3C9 /* MotionDataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionDataService.swift; sourceTree = "<group>"; };
 		BFCAED842CB9284E006E1765 /* WatchUnlockiPhone Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WatchUnlockiPhone Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BFCAED862CB9284E006E1765 /* WatchUnlockiPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchUnlockiPhoneApp.swift; sourceTree = "<group>"; };
 		BFCAED882CB9284E006E1765 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -67,7 +64,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		BF053EBB2CBEFE050084E95F /* Views */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Views; sourceTree = "<group>"; };
-		BF16944B2CBFA6B3003B1E2D /* Sensors */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Sensors; sourceTree = "<group>"; };
+		BF449AD22D1C86640099B93A /* Utils */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Utils; sourceTree = "<group>"; };
 		BF639A212CDB6AC000081A7F /* Services */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Services; sourceTree = "<group>"; };
 		BF9F68C72D05E870002DA1A9 /* Models */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Models; sourceTree = "<group>"; };
 		BF9F68CC2D05E9AE002DA1A9 /* Models */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Models; sourceTree = "<group>"; };
@@ -94,7 +91,6 @@
 		BF4BE5042CB915B50094A129 = {
 			isa = PBXGroup;
 			children = (
-				BF053EBA2CBEF9680084E95F /* data.json */,
 				BF4BE50F2CB915B50094A129 /* UnlockiPhone */,
 				BFCAED852CB9284E006E1765 /* WatchUnlockiPhone Watch App */,
 				BF4BE50E2CB915B50094A129 /* Products */,
@@ -113,9 +109,9 @@
 		BF4BE50F2CB915B50094A129 /* UnlockiPhone */ = {
 			isa = PBXGroup;
 			children = (
+				BF449AD22D1C86640099B93A /* Utils */,
 				BF9F68CC2D05E9AE002DA1A9 /* Models */,
 				BF639A212CDB6AC000081A7F /* Services */,
-				BF16944B2CBFA6B3003B1E2D /* Sensors */,
 				BF053EC12CBF17C40084E95F /* Info.plist */,
 				BF4BE5102CB915B50094A129 /* UnlockiPhoneApp.swift */,
 				BF4BE5122CB915B50094A129 /* ContentView.swift */,
@@ -136,8 +132,7 @@
 		BF8164022CB94B9A00F85DA3 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				BF7E2C9E2CCBA3D20065331E /* Quaternions.swift */,
-				BF8164052CB94F4400F85DA3 /* Accelerometer.swift */,
+				BFB0DF072D19E164003FE3C9 /* MotionDataService.swift */,
 				BF8164002CB930C300F85DA3 /* ExtensionDelegate.swift */,
 			);
 			path = Services;
@@ -185,7 +180,7 @@
 				BFCAED902CB92850006E1765 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				BF16944B2CBFA6B3003B1E2D /* Sensors */,
+				BF449AD22D1C86640099B93A /* Utils */,
 				BF639A212CDB6AC000081A7F /* Services */,
 				BF9F68CC2D05E9AE002DA1A9 /* Models */,
 			);
@@ -288,9 +283,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				BF8164012CB930C300F85DA3 /* ExtensionDelegate.swift in Sources */,
-				BF8164062CB94F4600F85DA3 /* Accelerometer.swift in Sources */,
-				BF7E2C9F2CCBA3D40065331E /* Quaternions.swift in Sources */,
 				BFCAED892CB9284E006E1765 /* ContentView.swift in Sources */,
+				BFB0DF082D19E168003FE3C9 /* MotionDataService.swift in Sources */,
 				BFCAED872CB9284E006E1765 /* WatchUnlockiPhoneApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
