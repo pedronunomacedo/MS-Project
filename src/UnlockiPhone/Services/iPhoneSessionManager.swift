@@ -28,8 +28,10 @@ class iPhoneSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             print("WCSession activated with state: \(activationState.rawValue)")
             self.updateContextFromiPhone(value: true)
         }
-        
-        self.checkMotionDataState()
+        // Delay to allow for context synchronization
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.checkMotionDataState()
+        }
     }
 
     func sessionReachabilityDidChange(_ session: WCSession) {
@@ -51,7 +53,7 @@ class iPhoneSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     }
 
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
-        print("Watch received context: \(applicationContext)")
+        print("iPhone received context: \(applicationContext)")
         DispatchQueue.main.async {
             if let iOSActive = applicationContext["iOSActive"] as? Bool {
                 print("Watch updated iOSActive: \(iOSActive)")
@@ -64,37 +66,53 @@ class iPhoneSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        handleReceivedMessage(message)
+        handleReceivedMessage(message, replyHandler: nil)
     }
     
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        handleReceivedMessage(message)
+        handleReceivedMessage(message, replyHandler: replyHandler)
     }
 
     // MARK: - Handle Received Messages
-    private func handleReceivedMessage(_ message: [String: Any]) {
+    private func handleReceivedMessage(_ message: [String: Any], replyHandler: (([String: Any]) -> Void)?) {
         if let accelerationData = message["accelerations"] as? [[String: Any]] {
-            receivedAccelerations = accelerationData.compactMap {
+            let processedAccelerations = accelerationData.compactMap { dataDict -> Acceleration? in
                 guard
-                    let x = $0["x"] as? Double,
-                    let y = $0["y"] as? Double,
-                    let z = $0["z"] as? Double,
-                    let timestamp = $0["timestamp"] as? TimeInterval
+                    let x = dataDict["x"] as? Double,
+                    let y = dataDict["y"] as? Double,
+                    let z = dataDict["z"] as? Double,
+                    let timestamp = dataDict["timestamp"] as? TimeInterval
                 else { return nil }
                 return Acceleration(x: x, y: y, z: z, timestamp: timestamp)
+            }
+            DispatchQueue.main.async {
+                self.receivedAccelerations = processedAccelerations
             }
         }
 
         if let quaternionData = message["quaternions"] as? [[String: Any]] {
-            receivedQuaternions = quaternionData.compactMap {
+            let processedQuaternions = quaternionData.compactMap { dataDict -> Quaternion? in
                 guard
-                    let w = $0["w"] as? Double,
-                    let x = $0["x"] as? Double,
-                    let y = $0["y"] as? Double,
-                    let z = $0["z"] as? Double,
-                    let timestamp = $0["timestamp"] as? TimeInterval
+                    let w = dataDict["w"] as? Double,
+                    let x = dataDict["x"] as? Double,
+                    let y = dataDict["y"] as? Double,
+                    let z = dataDict["z"] as? Double,
+                    let timestamp = dataDict["timestamp"] as? TimeInterval
                 else { return nil }
                 return Quaternion(w: w, x: x, y: y, z: z, timestamp: timestamp)
+            }
+            DispatchQueue.main.async { [weak self] in
+                self?.receivedQuaternions = processedQuaternions
+            }
+        }
+        
+        if let requestContext = message["requestContext"] as? Bool, requestContext == true {
+            let context: [String: Any] = [
+                "iOSActive": true,
+                "watchActive": WCSession.default.receivedApplicationContext["watchActive"] as? Bool ?? false
+            ]
+            if let replyHandler = replyHandler {
+                replyHandler(context)
             }
         }
 
@@ -112,12 +130,7 @@ class iPhoneSessionManager: NSObject, WCSessionDelegate, ObservableObject {
         // Application running in the background
         print("2) iOS App will resign active.")
         
-        do {
-            try WCSession.default.updateApplicationContext(["active": true])
-            print("2) Successfully updated context: active = true")
-        } catch {
-            print("2) Failed to update context: \(error.localizedDescription)")
-        }
+        self.updateContextFromiPhone(value: true)
 
         checkMotionDataState()
     }
@@ -145,7 +158,14 @@ class iPhoneSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             try WCSession.default.updateApplicationContext(context)
             print("iPhone updated context: \(context)")
         } catch {
-            print("Failed to update Watch context: \(error.localizedDescription)")
+            print("Failed to update context on iPhone: \(error.localizedDescription)")
+                    
+            // Use sendMessage as a fallback
+            if WCSession.default.isReachable {
+                WCSession.default.sendMessage(context, replyHandler: nil, errorHandler: { error in
+                    print("Error sending fallback message: \(error.localizedDescription)")
+                })
+            }
         }
     }
     

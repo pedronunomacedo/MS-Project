@@ -4,11 +4,11 @@ import CoreMotion
 class MotionDataProcessor: ObservableObject {
     static let shared = MotionDataProcessor() // Singleton instance
     
-    // Buffer limits
+    // Buffer limits#imageLiteral(resourceName: "C1612629-3DA5-4BFC-BD30-99C80CB4374B_1_105_c.jpeg")
     private let bufferLimit = 34
     private let overlapCount = 14 // First 14 samples of the next window
     private let movementSamples = 15 // Nr. of samples needed to be in sync in order to consider devices synchronization
-    private static var accelerationDiffThreshold = 0.30 // Static threshold for acceleration instances difference
+    private static var accelerationDiffThreshold = 0.20 // Static threshold for acceleration instances difference
     private static var accelerationStationaryThreshold = 0.10 // Static threshold for stationary accelerations
     private static var turningPointsOverlapThreshold = 0.60 // Static threshold overlap for turning points
 
@@ -20,6 +20,7 @@ class MotionDataProcessor: ObservableObject {
     private let bufferQueue = DispatchQueue(label: "com.motiondataprocessor.bufferQueue")
     
     @Published var numberUnlocks = 0 // Number of unlocks
+    @Published var numberTries = 0 // Number of tries
     
     func addData(source: String, accelerations: [Acceleration], quaternions: [Quaternion]) {
         bufferQueue.async {
@@ -70,6 +71,7 @@ class MotionDataProcessor: ObservableObject {
             if self.watchAccelerationBuffer.count >= self.bufferLimit,
                self.iPhoneAccelerationBuffer.count >= self.bufferLimit
             {
+                self.numberTries += 1
                 self.processMotionData()
                 self.clearBuffers()
             }
@@ -111,7 +113,7 @@ class MotionDataProcessor: ObservableObject {
         }
         
         /// Step 3: If both accelerations and quaternions are synchronized, then the unlock conditions are met
-        if (accelerationsSynched && quaternionsSynched) {
+        if (quaternionsSynched) {
             print("Unlocking!")
             DispatchQueue.main.async {
                 self.numberUnlocks += 1
@@ -206,13 +208,13 @@ class MotionDataProcessor: ObservableObject {
             return false
         }
         
-        // Check if devices are stationary
+        /// Step 2: Check if devices are stationary
         if self.areDevicesStationary(synchronizedAccelerations: synchronizedAccelerations) {
             print("Devices are stationary. Not counting as an unlock.")
             return false
         }
         
-        /// Step 2: Compare the accelerations between the watch and the iPhone by calculating the magnitude of each acceleration, using a sliding window
+        /// Step 3: Compare the accelerations between the watch and the iPhone by calculating the magnitude of each acceleration, using a sliding window
         for startIndex in 0...(synchronizedAccelerations.count - self.movementSamples) {
             let window = Array(synchronizedAccelerations[startIndex..<(startIndex + self.movementSamples)])
             
@@ -241,38 +243,6 @@ class MotionDataProcessor: ObservableObject {
         }
         
         return alignedQuaternions
-    }
-    
-    // Used to resample and smooth the orientation data
-    func gaussianFilter(accelerations: [Acceleration], sigma: Double, period: TimeInterval) -> [Acceleration] {
-        var smoothedAccelerations: [Acceleration] = []
-        let gaussianWindowSize = Int(period / 0.02)  // Adjust for sampling rate (0.02 seconds = 50Hz)
-        
-        for i in 0..<accelerations.count {
-            var sumWeights = 0.0
-            var weightedAcceleration = CMAcceleration(x: 0, y: 0, z: 0)
-            
-            for j in max(0, i - gaussianWindowSize)...min(accelerations.count - 1, i + gaussianWindowSize) {
-                let timeDifference = abs(accelerations[j].timestamp - accelerations[i].timestamp)
-                let weight = exp(-(timeDifference * timeDifference) / (2 * sigma * sigma))
-                
-                weightedAcceleration.x += weight * accelerations[j].x
-                weightedAcceleration.y += weight * accelerations[j].y
-                weightedAcceleration.z += weight * accelerations[j].z
-                sumWeights += weight
-            }
-            
-            smoothedAccelerations.append(
-                Acceleration(
-                    x: weightedAcceleration.x / sumWeights,
-                    y: weightedAcceleration.y / sumWeights,
-                    z: weightedAcceleration.z / sumWeights,
-                    timestamp: accelerations[i].timestamp
-                )
-            )
-        }
-        
-        return smoothedAccelerations
     }
     
     // Analyze a single window of samples

@@ -18,6 +18,7 @@ class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate, Obser
             let session = WCSession.default
             session.delegate = self
             session.activate()
+            print("WCSession activated on Watch.")
         }
 
         // Handle motion data collection
@@ -31,7 +32,9 @@ class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate, Obser
         self.watchActive = true
         self.isAppInBackground = false
         self.updateContextFromWatch(value: true)
-        self.checkMotionDataState()
+        
+        // Delay motion data state check to allow for context sync
+        // self.checkMotionDataState()
     }
 
     func applicationWillResignActive() {
@@ -39,14 +42,10 @@ class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate, Obser
         watchActive = false
         isAppInBackground = true
 
-        do {
-            self.updateContextFromWatch(value: true)
-            print("2) Successfully updated context: active = true")
-        } catch {
-            print("2) Failed to update context: \(error.localizedDescription)")
-        }
+        self.updateContextFromWatch(value: true)
+        print("3) Successfully updated context: active = true")
 
-        checkMotionDataState()
+        // checkMotionDataState()
     }
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
@@ -69,7 +68,7 @@ class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate, Obser
                 self.watchActive = watchActive
                 print("Watch updated watchActive: \(watchActive)")
             }
-            self.checkMotionDataState()
+            self.checkMotionDataState(receivedAsMsg: nil)
         }
     }
 
@@ -77,13 +76,34 @@ class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate, Obser
         print("Checking session reachability!")
         if session.isReachable {
             print("WCSession is reachable.")
+            
+            WCSession.default.sendMessage(["requestContext": true], replyHandler: { response in
+                print("Received response: \(response)")
+                if let iOSActive = response["iOSActive"] as? Bool {
+                    print("-> -> iOSActive: ", iOSActive)
+                    self.iOSActive = iOSActive
+                    self.checkMotionDataState(receivedAsMsg: iOSActive)
+                }
+            }, errorHandler: { error in
+                print("Error requesting context: \(error.localizedDescription)")
+            })
         } else {
             print("WCSession is not reachable.")
         }
     }
 
-    private func checkMotionDataState() {
-        let iOSActive = WCSession.default.receivedApplicationContext["iOSActive"] as? Bool ?? false
+    private func checkMotionDataState(receivedAsMsg: Bool?) {
+        print("WCSession.default.receivedApplicationContext[\"iOSActive\"]: ", WCSession.default.receivedApplicationContext["iOSActive"] as Any)
+        
+        var iOSActive = false
+        if receivedAsMsg != nil {
+            iOSActive = receivedAsMsg ?? false
+        } else {
+            iOSActive = WCSession.default.receivedApplicationContext["iOSActive"] as? Bool ?? false
+        }
+        
+        print("iOSActive: \(iOSActive) and watchActive: \(watchActive)")
+        
         let watchActive = WCSession.default.applicationContext["watchActive"] as? Bool ?? false
         
         // Log the current state
@@ -110,7 +130,14 @@ class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate, Obser
             try WCSession.default.updateApplicationContext(context)
             print("Watch updated context: \(context)")
         } catch {
-            print("Failed to update Watch context: \(error.localizedDescription)")
+            print("Failed to update context on watch: \(error.localizedDescription)")
+                    
+            // Use sendMessage as a fallback
+            if WCSession.default.isReachable {
+                WCSession.default.sendMessage(context, replyHandler: nil, errorHandler: { error in
+                    print("Error sending fallback message: \(error.localizedDescription)")
+                })
+            }
         }
     }
 

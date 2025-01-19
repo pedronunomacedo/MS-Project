@@ -32,12 +32,12 @@ struct ContentView: View {
                     // Watch Data
                     Group {
                         VStack {
-                            Text("Number of unlocks")
+                            Text("Number of tries")
                                 .font(.title2)
                                 .bold()
                                 .foregroundColor(.green)
                             
-                            Text("\(self.motionProcessor.numberUnlocks)")
+                            Text("\(self.motionProcessor.numberTries)")
                         }
                     }
                 }
